@@ -1,1 +1,1 @@
-# Typing-assessment
+# Typing-contest
