@@ -3,7 +3,7 @@ window.CONFIG = {
     GOOGLE_SHEET_CSV_URL: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJtzXmCY4_XMvxs09HKHJzrUHScup6ZJC2957-UNF3Ay-vLoPANct6hUavzcYpZxH2zaehcBC_NuXz/pub?output=csv',
 
     // 2. 貼上剛才複製的 Web 應用程式 URL (結尾必須是 /exec)
-    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyCFNDGEySCX7WQlMgUEgT7UNb-RhrLRcip6xxA43BuIAclXlIB0OxBuiL7XQmykvPj/exec',
+    SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbzB-kYflLZSp4P2VxVjdsw9Ownv3K4ZfBfO8MwquqUGIIV2F4hxh1Aj77s19Eqo2_Pd/exec',
 
     DEFAULT_TEXT: "Type the key indicated by the blue light to begin.",
     DEFAULT_ARTICLE: "Type the key indicated by the blue light to begin.",
