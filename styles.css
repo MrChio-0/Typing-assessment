@@ -1265,3 +1265,48 @@ input.login-input:-webkit-autofill:active {
 .custom-article-btn:hover {
     background-color: #eef2ff !important;
 }
+
+/* ============================================
+   題目與對照框交錯排列 (精準對齊段落)
+   ============================================ */
+/* 讓題目容器保持正常塊狀排版 */
+#textDisplay {
+    display: block !important;
+    line-height: 1.8;
+}
+
+/* 嵌入在段落內部的淺藍對照框 */
+.typing-input-display-line {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    margin-bottom: 20px;
+    min-height: 44px;
+    padding: 8px 16px;
+    background-color: #f0f7ff;
+    border: 1px solid #bae0ff;
+    border-radius: 8px;
+    font-size: 1.35rem;
+    font-family: inherit;
+    color: #1a1a1a;
+    letter-spacing: 0.5px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.2s, background-color 0.2s;
+    white-space: pre-wrap;
+    box-sizing: border-box;
+}
+
+/* 當前輸入段落高亮框 */
+.typing-input-display-line.active {
+    border-color: #69b1ff;
+    background-color: #e6f7ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.15);
+}
+
+/* 佔位提示字 */
+.typing-input-placeholder {
+    color: #4096ff;
+    font-size: 1.1rem;
+    user-select: none;
+    opacity: 0.85;
+}
