@@ -1193,94 +1193,129 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ============================================
-// 監測非英文/中文輸入法警告功能 (狀態強制還原零扣分版)
+// 動態生成「輸入對照行」功能 (100% 顯示實際打字內容/錯字版)
 // ============================================
-(function() {
-    let isWarningShown = false;
-    let snapshotState = null;
+document.addEventListener('DOMContentLoaded', () => {
+    const textDisplay = document.getElementById('textDisplay');
+    if (!textDisplay) return;
 
-    // 拍下輸入前的正確狀態快照
-    function takeSnapshot() {
-        if (typeof state !== 'undefined' && state) {
-            snapshotState = {
-                currentIndex: state.currentIndex,
-                errors: state.errors,
-                correctKeys: state.correctKeys,
-                totalKeysPressed: state.totalKeysPressed,
-                typedText: state.typedText
-            };
-        }
-    }
+    let activeSegIndex = -1;
 
-    // 將遊戲狀態強制還原回輸入前
-    function restoreSnapshot() {
-        if (typeof state !== 'undefined' && state && snapshotState) {
-            state.currentIndex = snapshotState.currentIndex;
-            state.errors = snapshotState.errors;
-            state.correctKeys = snapshotState.correctKeys;
-            state.totalKeysPressed = snapshotState.totalKeysPressed;
-            state.typedText = snapshotState.typedText;
+    // 1. 初始化結構：按 ENTER 切分段落，並插入專屬淺藍對照框
+    function setupInterleavedLayout() {
+        if (textDisplay.querySelector('.typing-input-display-line')) return;
 
-            // 強制重新渲染遊戲畫面，擦除錯字與錯誤紅字
-            if (typeof renderText === 'function') renderText();
-            if (typeof updateStats === 'function') updateStats();
-            if (typeof updateHint === 'function') updateHint();
-        }
-    }
+        const spans = Array.from(textDisplay.querySelectorAll('span'));
+        if (spans.length === 0) return;
 
-    function handleChineseInput(e) {
-        // 1. 儘可能阻止預設行為
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-        }
+        let segIndex = 0;
+        spans.forEach((span, idx) => {
+            const text = span.textContent;
+            const isEnter = text === '↵' || text === '\n' || text === '\r' || 
+                            span.classList.contains('enter-char') || 
+                            span.classList.contains('newline');
 
-        // 2. 延遲 10 毫秒執行還原，確保在原生遊戲程式「計錯」之後，將資料強制改回正確值
-        setTimeout(() => {
-            restoreSnapshot();
-        }, 10);
+            if (isEnter || idx === spans.length - 1) {
+                const inputDiv = document.createElement('div');
+                inputDiv.className = 'typing-input-display-line';
+                inputDiv.dataset.seg = segIndex;
+                inputDiv.innerHTML = `<span class="typing-input-placeholder">( 請在此處打字... )</span>`;
 
-        // 3. 彈出警告
-        if (!isWarningShown) {
-            isWarningShown = true;
-            alert('⚠️ 偵測到中文輸入法！\n請先切換至「英文輸入法」(按下 Shift 或 Caps Lock) 再開始打字喔！');
-            
-            setTimeout(() => {
-                restoreSnapshot(); // 彈窗關閉後再次確保還原
-                isWarningShown = false;
+                span.dataset.segEnd = segIndex;
+                span.after(inputDiv);
                 
-                // 清空隱藏輸入框
-                const hiddenInput = dom?.hiddenInput || document.getElementById('hiddenInput') || document.querySelector('input');
-                if (hiddenInput) {
-                    hiddenInput.value = '';
-                    hiddenInput.focus();
-                }
-            }, 100);
-        }
-        return false;
+                segIndex++;
+            }
+        });
     }
 
-    // A. 隨時持續記錄最新的合法輸入狀態
-    window.addEventListener('keydown', (e) => {
-        // 如果目前是正常的英文輸入，記錄狀態快照
-        if (!e.isComposing && e.keyCode !== 229) {
-            takeSnapshot();
-        } else {
-            // 若發現是中文 IME 按鍵，立即還原並跳警告
-            handleChineseInput(e);
-        }
-    }, true);
+    // 2. 精準對齊與同步真實輸入內容
+    function syncInputDisplays() {
+        if (typeof state === 'undefined' || !state) return;
 
-    // B. 偵測 IME 組字開始 (中文輸入法按下第一個鍵時)
-    window.addEventListener('compositionstart', (e) => {
-        handleChineseInput(e);
-    }, true);
+        setupInterleavedLayout();
 
-    // C. 防禦 input 事件中的中文字符
-    window.addEventListener('input', (e) => {
-        if (e.isComposing || (e.target && /[^\x00-\x7F]/.test(e.target.value))) {
-            handleChineseInput(e);
-        }
-    }, true);
-})();
+        // 取得學生「實際輸入」的原始字串（包含所有打錯的字）
+        const rawTyped = state.userInput || state.typedText || '';
+
+        const inputBoxes = textDisplay.querySelectorAll('.typing-input-display-line');
+        const endSpans = textDisplay.querySelectorAll('span[data-seg-end]');
+
+        if (inputBoxes.length === 0 || endSpans.length === 0) return;
+
+        // 將學生的實際輸入依照 Enter 鍵拆分為段落陣列
+        const typedParagraphs = rawTyped.split(/[\r\n]+/);
+
+        // 判斷目前打到第幾段
+        const currentSegIndex = Math.min(typedParagraphs.length - 1, inputBoxes.length - 1);
+
+        endSpans.forEach((endSpan, segIdx) => {
+            const box = inputBoxes[segIdx];
+            if (!box) return;
+
+            // 取出學生在這一段真正的打字內容（打錯什麼就顯示什麼）
+            let segmentTypedText = typedParagraphs[segIdx] || '';
+
+            // 高亮目前打字中的段落框
+            const isCurrentSegment = (segIdx === currentSegIndex);
+
+            if (isCurrentSegment) {
+                box.classList.add('active');
+            } else {
+                box.classList.remove('active');
+            }
+
+            // 渲染顯示內容
+            if (segmentTypedText.length === 0) {
+                box.innerHTML = `<span class="typing-input-placeholder">( 請在此處打字... )</span>`;
+            } else {
+                // 安全轉義 HTML 標籤並還原空格
+                let displayText = segmentTypedText
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/ /g, "&nbsp;");
+
+                box.innerHTML = displayText;
+            }
+
+            // 自動滾動：當進入新的段落打字時，滑動至可視區域中央
+            if (isCurrentSegment && segIdx !== activeSegIndex) {
+                activeSegIndex = segIdx;
+                box.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        });
+    }
+
+    let isUpdating = false;
+    function safeUpdate() {
+        if (isUpdating) return;
+        isUpdating = true;
+        requestAnimationFrame(() => {
+            syncInputDisplays();
+            isUpdating = false;
+        });
+    }
+
+    // 1. 監聽 DOM 變更 (換文章時自動重新組裝對照框)
+    const observer = new MutationObserver(() => {
+        setupInterleavedLayout();
+        safeUpdate();
+    });
+
+    observer.observe(textDisplay, { childList: true });
+
+    // 2. 即時監聽學生所有按鍵與輸入動作
+    window.addEventListener('input', safeUpdate, true);
+    window.addEventListener('keyup', safeUpdate, true);
+    window.addEventListener('keydown', () => setTimeout(safeUpdate, 10), true);
+
+    // 初始執行一次
+    setTimeout(() => {
+        setupInterleavedLayout();
+        syncInputDisplays();
+    }, 300);
+});
