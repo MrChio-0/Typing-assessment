@@ -687,7 +687,7 @@ body {
 }
 
 .modal-header {
-    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    background: linear-gradient(135deg, #1890ff 0%, #0958d9 100%);
     color: white;
     padding: 1rem 1.25rem;
     position: relative;
@@ -1093,7 +1093,7 @@ textarea:focus {
    Login Modal
    ============================================ */
 .login-card {
-    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    background: linear-gradient(135deg, #c7dbfe 0%, #8acdfd 100%);
     border: 1px solid #fcd34d;
     border-radius: var(--radius-lg);
     padding: 1.25rem;
